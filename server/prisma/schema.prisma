@@ -1,0 +1,101 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String   @id @default(uuid())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  name           String
+  email          String   @unique
+  passwordHash   String
+  phone          String?
+  isRunner       Boolean  @default(false)
+  isAdmin        Boolean  @default(false)
+  preferredCity  String?
+  jobs           Job[]    @relation("CustomerJobs")
+  runnerJobs     Job[]    @relation("RunnerJobs")
+  payments       Payment[]
+}
+
+enum JobType {
+  SCHEDULED
+  URGENT
+}
+
+enum JobStatus {
+  OPEN
+  ASSIGNED
+  IN_PICKUP
+  IN_TRANSIT
+  DELIVERED
+  FAILED
+  CANCELLED
+}
+
+enum PickupType {
+  PERSON
+  BUSINESS
+}
+
+enum PayoutStatus {
+  UNPAID
+  PAID
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+model Job {
+  id                   String       @id @default(uuid())
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+  customer             User         @relation("CustomerJobs", fields: [customerId], references: [id])
+  customerId           String
+  runner               User?        @relation("RunnerJobs", fields: [runnerId], references: [id])
+  runnerId             String?
+  type                 JobType
+  status               JobStatus    @default(OPEN)
+  pickupType           PickupType
+  pickupName           String
+  pickupContactPhone   String?
+  pickupAddress        String
+  pickupAdditionalInfo String?
+  businessOrderNumber  String?
+  dropoffName          String
+  dropoffPhone         String?
+  dropoffAddress       String
+  dropoffAdditionalInfo String?
+  itemDescription      String
+  scheduledPickupTime  DateTime?
+  urgentRequested      Boolean      @default(false)
+  baseFeeCents         Int
+  urgencyFeeCents      Int
+  totalFeeCents        Int
+  customerPaid         Boolean      @default(false)
+  runnerPayoutCents    Int
+  payoutStatus         PayoutStatus @default(UNPAID)
+  failureReason        String?
+  payments             Payment[]
+}
+
+model Payment {
+  id               String         @id @default(uuid())
+  createdAt        DateTime       @default(now())
+  job              Job            @relation(fields: [jobId], references: [id])
+  jobId            String
+  customer         User           @relation(fields: [customerId], references: [id])
+  customerId       String
+  provider         String
+  providerPaymentId String
+  amountCents      Int
+  status           PaymentStatus
+}
